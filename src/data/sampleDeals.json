@@ -1,59 +1,26 @@
 [
   {
-    "id": "1",
-    "title": "Surplus Sushi Box",
-    "vendor": "Sushi K",
-    "price": 6.99,
-    "expiry": "2025-10-22T20:00:00",
-    "lat": 34.049,
-    "lng": -118.257,
-    "diet": [
-      "any"
-    ],
-    "distance_km": 1.2,
-    "qty": 4
-  },
-  {
-    "id": "2",
-    "title": "Bakery Mixed Bag",
-    "vendor": "Crumb & Co",
+    "id": "s1",
+    "title": "Sourdough Loaf",
+    "vendor": "Baker’s Corner",
     "price": 3.5,
-    "expiry": "2025-10-22T18:30:00",
-    "lat": 34.06,
-    "lng": -118.245,
-    "diet": [
-      "veg"
-    ],
-    "distance_km": 2.1,
-    "qty": 8
+    "originalPrice": 7,
+    "lat": 37.7802,
+    "lng": -122.4206,
+    "expiry": "2099-12-31T23:59:00.000Z",
+    "image": "",
+    "diet": ["veg"]
   },
   {
-    "id": "3",
-    "title": "Veggie Pasta Bowl",
-    "vendor": "Green Spoon",
-    "price": 5.25,
-    "expiry": "2025-10-22T21:15:00",
-    "lat": 34.041,
-    "lng": -118.243,
-    "diet": [
-      "veg",
-      "vegan"
-    ],
-    "distance_km": 0.8,
-    "qty": 6
-  },
-  {
-    "id": "4",
-    "title": "Rotisserie Chicken",
-    "vendor": "Market Hall",
-    "price": 7.99,
-    "expiry": "2025-10-22T19:00:00",
-    "lat": 34.067,
-    "lng": -118.26,
-    "diet": [
-      "any"
-    ],
-    "distance_km": 3.3,
-    "qty": 2
+    "id": "s2",
+    "title": "Veggie Box",
+    "vendor": "Fresh Mart",
+    "price": 4.99,
+    "originalPrice": 9.99,
+    "lat": 37.7681,
+    "lng": -122.4316,
+    "expiry": "2099-12-31T23:59:00.000Z",
+    "image": "",
+    "diet": ["vegan","veg"]
   }
 ]

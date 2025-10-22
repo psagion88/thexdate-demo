@@ -1,40 +1,32 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-import iconUrl from 'leaflet/dist/images/marker-icon.png?url'
-import shadowUrl from 'leaflet/dist/images/marker-shadow.png?url'
-const DefaultIcon = L.icon({ iconUrl, shadowUrl })
-L.Marker.prototype.options.icon = DefaultIcon
 
-export default function MapView({ items }) {
-  const [center, setCenter] = useState([34.0522, -118.2437]) // LA default
-  const [zoom] = useState(12)
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setCenter([pos.coords.latitude, pos.coords.longitude]),
-        () => {},
-        { enableHighAccuracy: true, timeout: 5000 }
-      )
-    }
-  }, [])
-  const openDirections = (lat, lng) => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
-    window.open(url, '_blank')
-  }
+const icon = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+})
+
+export default function MapView({ items = [], onBuy }) {
+  const center = items.length ? [items[0].lat, items[0].lng] : [37.7749, -122.4194]
+
   return (
-    <div style={{height:'100%'}}>
-      <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }}>
-        <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        {items.map(item => (
-          <Marker key={item.id} position={[item.lat, item.lng]}>
+    <div style={{height:'100%', minHeight:360}}>
+      <MapContainer center={center} zoom={12} style={{height:'100%', width:'100%'}}>
+        <TileLayer
+          attribution='&copy; OpenStreetMap'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        {items.map(it => (
+          <Marker key={it.id} position={[it.lat, it.lng]} icon={icon}>
             <Popup>
-              <div style={{minWidth: 180}}>
-                <strong>{item.title}</strong><br/>
-                ${item.price.toFixed(2)} — <span style={{color:'#666'}}>{item.vendor}</span><br/>
-                <small>Expires {new Date(item.expiry).toLocaleString()}</small><br/>
-                <button className="btn" style={{marginTop:8}} onClick={()=>openDirections(item.lat, item.lng)}>Directions</button>
+              <div style={{display:'grid', gap:6, maxWidth:220}}>
+                <strong>{it.title}</strong>
+                <div>${Number(it.price).toFixed(2)} {it.originalPrice ? <span className="muted">(was ${Number(it.originalPrice).toFixed(2)})</span> : null}</div>
+                <div className="muted">{it.vendor}</div>
+                <button className="btn small" onClick={()=>onBuy?.(it)}>Buy</button>
               </div>
             </Popup>
           </Marker>

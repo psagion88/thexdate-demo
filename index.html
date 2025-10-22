@@ -5,116 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>The X Date — Demo (iPhone)</title>
 
-    <!-- Leaflet CSS for the map -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      crossorigin="anonymous"
-    />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
 
     <style>
-      :root { --border:#e6e6e6; --muted:#666; --bg:#f6f7f9; --ink:#0f1115; }
+      :root { --border:#e6e6e6; --muted:#666; --bg:#f7f8fb; --ink:#0f1115;
+              --brand:#0ea5e9; --brand-2:#22c55e; --accent:#f97316; }
 
-      /* Center the phone frame on the page */
       html, body, #root {
-        height: 100%;
-        margin: 0;
-        background: var(--bg);
-        display: grid;
-        place-items: center;
+        height: 100%; margin: 0;
+        background: radial-gradient(1200px 800px at 80% -20%, #e0f2fe 0%, rgba(224,242,254,0) 60%), var(--bg);
+        display: grid; place-items: center;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+        color: var(--ink);
       }
 
-      /* iPhone device frame */
       .iphone {
-        width: 390px;     /* iPhone 12/13/14 logical width */
-        height: 844px;    /* iPhone 12/13/14 logical height */
-        background: #fff;
-        border-radius: 48px;
-        position: relative;
-        overflow: hidden;
+        width: 390px; height: 844px; background: #fff; border-radius: 48px;
+        position: relative; overflow: hidden; border: 10px solid #111;
         box-shadow: 0 30px 80px rgba(0,0,0,.25), 0 6px 18px rgba(0,0,0,.12);
-        border: 10px solid #111; /* bezel */
       }
+      .notch { position:absolute; top:0; left:50%; transform:translateX(-50%);
+        width:210px; height:30px; background:#111; border-bottom-left-radius:18px; border-bottom-right-radius:18px; z-index:10; }
+      .screen { position:absolute; inset:0; padding-top:30px; background:#fff;
+        display:grid; grid-template-rows:auto auto 1fr auto; }
 
-      .notch {
-        position: absolute;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 210px;
-        height: 30px;
-        background: #111;
-        border-bottom-left-radius: 18px;
-        border-bottom-right-radius: 18px;
-        z-index: 10;
-      }
+      .statusbar { height:20px; display:flex; align-items:center; justify-content:space-between; padding:6px 12px; font-size:12px; color:#444; }
+      .appbar { display:grid; grid-template-columns:80px 1fr 80px; align-items:center; padding:8px 10px;
+        border-bottom:1px solid var(--border); background: linear-gradient(180deg, #f0f9ff, #fff 60%); }
+      .appbar .left, .appbar .right { display:flex; gap:8px; align-items:center; }
+      .appbar .center { text-align:center; font-weight:800; }
+      .iconbtn { background:#f7f7f8; border:1px solid var(--border); border-radius:12px; padding:8px 10px; font-size:13px; cursor:pointer; }
+      .iconbtn.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+      .badge { margin-left:6px; font-weight:700; font-size:12px; color:#0ea5e9; }
 
-      .screen {
-        position: absolute;
-        inset: 0;
-        padding-top: 30px; /* space for notch */
-        background: #fff;
-        display: grid;
-        grid-template-rows: auto 1fr;
-      }
+      .page { height:100%; overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; }
+      .narrow { max-width: 364px; margin: 0 auto; }
 
-      .statusbar {
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 6px 12px;
-        font-size: 12px;
-        color: #444;
-      }
-
-      .appbar {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--border);
-        font-weight: 700;
-      }
-
-      .page { height: 100%; overflow: auto; }
-
-      /* App UI helpers */
-      .pad { padding: 16px; }
-      .btn {
-        display: inline-block;
-        background: #111;
-        color: #fff;
-        border: none;
-        padding: 12px 14px;
-        border-radius: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-        text-align: center;
-      }
+      .pad { padding:16px; }
+      .btn { display:inline-block; background:var(--brand); color:#fff; border:none; padding:10px 12px; border-radius:12px;
+        font-weight:700; cursor:pointer; text-align:center; text-decoration:none; box-shadow:0 2px 0 rgba(0,0,0,.06); }
+      .btn.small { padding:8px 10px; border-radius:10px; font-weight:600; }
       .btn.secondary { background:#f5f5f5; color:#111; border:1px solid var(--border); }
-      .btn.block { width: 100%; }
-      .stack { display: grid; gap: 12px; }
-      .card { border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
-      .muted { color: #666; font-size: 12px; }
-      .tabs { display: flex; gap: 8px; }
-      .tabs .btn { flex: 1; }
-      .list { display: grid; gap: 10px; }
-      .list-item {
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
+      .btn.success { background:var(--brand-2); }
+      .btn.accent { background:var(--accent); }
+      .btn.block { width:100%; }
 
-      /* Leaflet map container should fill available space */
-      .leaflet-container { width: 100%; height: 100%; }
+      .stack { display:grid; gap:12px; }
+      .card { border:1px solid var(--border); border-radius:16px; padding:14px; background:#fff; }
+      .muted { color:#666; font-size:12px; }
+
+      .tabs { display:flex; gap:8px; background:#f3f4f6; padding:6px; border-radius:999px; border:1px solid var(--border); }
+      .tabs .btn { flex:1; border-radius:999px; padding:10px 12px; }
+
+      .list { display:grid; gap:10px; }
+      .list-item {
+        border:1px solid var(--border); border-radius:12px; padding:10px;
+        display:grid; grid-template-columns:72px 1fr auto; gap:10px; align-items:center; background:#fff;
+      }
+      .thumb { width:72px; height:56px; border-radius:10px; object-fit:cover; border:1px solid var(--border); background:#f3f4f6; }
+
+      .form { display:grid; gap:10px; }
+      .row { display:grid; gap:6px; }
+      .row.h { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+
+      .input, .select, .textarea {
+        padding:10px; border:1px solid var(--border); border-radius:12px; font-size:14px; width:100%; box-sizing:border-box;
+      }
+      .textarea { min-height: 72px; resize: vertical; }
+
+      .leaflet-container { width:100%; height:100%; min-height:360px; }
+
+      .bottomnav { border-top:1px solid var(--border); background:#fff; display:grid; grid-template-columns:repeat(4,1fr); padding:8px 6px; }
+      .navbtn { display:grid; place-items:center; gap:4px; font-size:11px; color:#333; text-decoration:none; padding:6px 0; border-radius:10px; }
+      .navbtn.active { background:#eef6ff; color:#0a7cc1; font-weight:700; }
     </style>
   </head>
-
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
