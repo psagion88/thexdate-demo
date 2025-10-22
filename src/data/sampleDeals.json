@@ -1,26 +1,12 @@
 [
-  {
-    "id": "s1",
-    "title": "Sourdough Loaf",
-    "vendor": "Baker’s Corner",
-    "price": 3.5,
-    "originalPrice": 7,
-    "lat": 37.7802,
-    "lng": -122.4206,
-    "expiry": "2099-12-31T23:59:00.000Z",
-    "image": "",
-    "diet": ["veg"]
-  },
-  {
-    "id": "s2",
-    "title": "Veggie Box",
-    "vendor": "Fresh Mart",
-    "price": 4.99,
-    "originalPrice": 9.99,
-    "lat": 37.7681,
-    "lng": -122.4316,
-    "expiry": "2099-12-31T23:59:00.000Z",
-    "image": "",
-    "diet": ["vegan","veg"]
-  }
+  { "id":"s1","title":"Sourdough Loaf","vendor":"Baker’s Corner","price":3.5,"originalPrice":7,"lat":37.7802,"lng":-122.4206,"expiry":"2099-12-31T23:59:00.000Z","image":"","diet":["veg"] },
+  { "id":"s2","title":"Veggie Box","vendor":"Fresh Mart","price":4.99,"originalPrice":9.99,"lat":37.7681,"lng":-122.4316,"expiry":"2099-12-31T23:59:00.000Z","image":"","diet":["vegan","veg"] },
+  { "id":"s3","title":"Chicken Wrap","vendor":"City Deli","price":5.25,"originalPrice":8.5,"lat":37.7649,"lng":-122.4260,"expiry":"2099-12-31T23:59:00.000Z","image":"","diet":[] },
+  { "id":"s4","title":"Caesar Salad","vendor":"Greens & Co","price":4.2,"originalPrice":7.5,"lat":37.7722,"lng":-122.4144,"expiry":"2099-12-31T23:59:00.000Z","image":"","diet":["veg"] },
+  { "id":"s5","title":"Fruit Medley","vendor":"Daily Harvest","price":3.75,"originalPrice":6.0,"lat":37.7855,"lng":-122.4351,"expiry":"2099-12-31T23:59:00.000Z","image":"","diet":["vegan","veg"] },
+  { "id":"s6","title":"Turkey Sandwich","vendor":"Market Café","price":4.8,"originalPrice":8.2,"lat":37.7711,"lng":-122.4472,"expiry":"2099-12-31T23:59:00.000Z","image":"","diet":[] },
+  { "id":"s7","title":"Pasta Box","vendor":"Italiano To-Go","price":5.9,"originalPrice":10.2,"lat":37.7582,"lng":-122.4148,"expiry":"2099-12-31T23:59:00.000Z","image":"","diet":["veg"] },
+  { "id":"s8","title":"Tofu Bowl","vendor":"Umami House","price":5.3,"originalPrice":9.0,"lat":37.7892,"lng":-122.4047,"expiry":"2099-12-31T23:59:00.000Z","image":"","diet":["vegan","veg"] },
+  { "id":"s9","title":"Bagel Pack","vendor":"Sunrise Bakery","price":2.9,"originalPrice":5.0,"lat":37.7499,"lng":-122.4201,"expiry":"2099-12-31T23:59:00.000Z","image":"","diet":["veg"] },
+  { "id":"s10","title":"Sushi Tray","vendor":"Harbor Sushi","price":6.5,"originalPrice":12.0,"lat":37.8021,"lng":-122.4187,"expiry":"2099-12-31T23:59:00.000Z","image":"","diet":[] }
 ]
