@@ -3,5 +3,5 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/thexdate-demo/', // <- MUST match your repo name
+  base: './', // relative paths so GitHub Pages works
 })
