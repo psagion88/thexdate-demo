@@ -25,16 +25,22 @@ export default function DiscoverPhone() {
             <button className="btn" onClick={()=>setMode('map')} aria-pressed={mode==='map'}>Map</button>
             <button className="btn secondary" onClick={()=>setMode('list')} aria-pressed={mode==='list'}>List</button>
           </div>
-          <input placeholder="Search items or vendors" value={q}
+          <input
+            placeholder="Search items or vendors"
+            value={q}
             onChange={e=>setQ(e.target.value)}
-            style={{padding:'10px',border:'1px solid #e6e6e6',borderRadius:'12px'}} />
-          <select value={diet} onChange={e=>setDiet(e.target.value)}
-            style={{padding:'10px',border:'1px solid #e6e6e6',borderRadius:'12px'}}>
+            style={{padding:'10px',border:'1px solid #e6e6e6',borderRadius:'12px'}}
+          />
+          <select
+            value={diet}
+            onChange={e=>setDiet(e.target.value)}
+            style={{padding:'10px',border:'1px solid #e6e6e6',borderRadius:'12px'}}
+          >
             <option value="any">Any</option>
             <option value="veg">Vegetarian</option>
             <option value="vegan">Vegan</option>
           </select>
-          <div className="muted">Page 3: Map or List (like website)</div>
+          <div className="muted">Page 3: Map or List</div>
         </div>
       </div>
 
