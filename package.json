@@ -1,10 +1,7 @@
-{
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-
-    "build:gh": "VITE_BASE=/thexdate-demo/ vite build",
-    "deploy:gh": "npm run build:gh && gh-pages -d dist"
-  }
+"scripts": {
+  "dev": "vite",
+  "build": "vite build",
+  "preview": "vite preview",
+  "build:gh": "set VITE_BASE=/thexdate-demo/&& vite build",
+  "deploy:gh": "npm run build:gh && gh-pages -d dist"
 }
