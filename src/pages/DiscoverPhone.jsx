@@ -1,152 +1,121 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import MapView from '../components/MapView.jsx'
-import sampleData from '../data/sampleDeals.json'
+import dealsData from '../data/sampleDeals.json'
 import StarRating from '../components/StarRating.jsx'
 import { getVendorRating } from '../utils/ratings.js'
 
-const itemsKey = 'thexdate.vendorItems'
-const profileKey = 'thexdate.vendorProfile'
-
-function loadJSON(key, fallback) {
-  try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return v ?? fallback } catch { return fallback }
-}
-function haversineKm(a, b) {
-  const toRad = (x)=>x*Math.PI/180
-  const R = 6371
-  const dLat = toRad(b.lat - a.lat)
-  const dLng = toRad(b.lng - a.lng)
-  const s1 = Math.sin(dLat/2)**2
-  const s2 = Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2
-  return 2*R*Math.asin(Math.sqrt(s1+s2))
-}
-
 export default function DiscoverPhone() {
-  const [mode, setMode] = useState('map')
-  const [q, setQ] = useState('')
-  const [diet, setDiet] = useState('any')
-  const [userLoc, setUserLoc] = useState(null)
-  const [vendorItems, setVendorItems] = useState([])
+  const nav = useNavigate()
+  const [query, setQuery] = useState('')
+  const [type, setType] = useState('all')
+  const [mode, setMode] = useState('map') // 'map' | 'list'
+  const [userCenter, setUserCenter] = useState(null)
+  const [msg, setMsg] = useState('')
 
-  useEffect(() => {
-    const handler = () => setVendorItems(loadJSON(itemsKey, []))
-    handler()
-    window.addEventListener('storage', handler)
-    return () => window.removeEventListener('storage', handler)
+  // Build dynamic type list from data
+  const types = useMemo(() => {
+    const set = new Set(dealsData.map(d => d.type).filter(Boolean))
+    return ['all', ...Array.from(set).sort()]
   }, [])
 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => setUserLoc(null),
-        { enableHighAccuracy: true, timeout: 5000 }
-      )
-    }
-  }, [])
-
+  // Filter logic
   const items = useMemo(() => {
-    const now = Date.now()
-    const vendorProfile = loadJSON(profileKey, null)
-    const vItems = (vendorItems || []).map(d => ({
-      ...d,
-      vendor: d.vendor || vendorProfile?.storeName || 'My Store',
-      image: d.image || d.img || ''
-    }))
-
-    let data = [...sampleData, ...vItems].filter(d => {
-      if (d.soldOut) return false
-      const exp = new Date(d.expiry).getTime()
-      return isFinite(exp) ? exp > now : true
+    const q = query.trim().toLowerCase()
+    return dealsData.filter(d => {
+      const okType = type === 'all' || d.type === type
+      const okQ = !q || d.title.toLowerCase().includes(q) || d.vendor.toLowerCase().includes(q)
+      return okType && okQ
     })
-
-    if (diet !== 'any') data = data.filter(d => d.diet?.includes(diet))
-    if (q) {
-      const s = q.toLowerCase()
-      data = data.filter(d => d.title.toLowerCase().includes(s) || d.vendor.toLowerCase().includes(s))
-    }
-
-    if (userLoc) {
-      data = data.map(d => ({ ...d, distance_km: haversineKm(userLoc, { lat: d.lat, lng: d.lng }) }))
-      data.sort((a,b) => a.distance_km - b.distance_km)
-    } else {
-      data.sort((a,b) => new Date(a.expiry) - new Date(b.expiry))
-    }
-
-    return data
-  }, [diet, q, userLoc, vendorItems])
-
-  const useMyLocation = () => {
-    if (!navigator.geolocation) return alert('Geolocation not available')
-    navigator.geolocation.getCurrentPosition(
-      (pos)=>setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      ()=>alert('Could not get your location'),
-      { enableHighAccuracy: true, timeout: 5000 }
-    )
-  }
+  }, [query, type])
 
   const goCheckout = (item) => {
     try { sessionStorage.setItem('thexdate.checkoutItem', JSON.stringify(item)) } catch {}
-    location.hash = '#/checkout'
+    nav('/checkout')
+  }
+
+  const useMyLocation = () => {
+    setMsg('')
+    if (!('geolocation' in navigator)) {
+      setMsg('Geolocation not supported in this browser.')
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const c = [pos.coords.latitude, pos.coords.longitude]
+        setUserCenter(c)
+        setMode('map') // show the map
+        setMsg('Centered on your location.')
+      },
+      err => {
+        setMsg('Location error: ' + (err?.message || 'permission denied'))
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    )
   }
 
   return (
-    <div style={{display:'grid', gridTemplateRows:'auto 1fr', height:'100%'}}>
-      <div className="pad">
-        <div className="stack">
-          <div className="tabs">
-            <button className="btn" onClick={()=>setMode('map')} aria-pressed={mode==='map'}>Map</button>
-            <button className="btn secondary" onClick={()=>setMode('list')} aria-pressed={mode==='list'}>List</button>
-          </div>
-
-          <div className="stack">
-            <input className="input" placeholder="Search items or vendors" value={q} onChange={e=>setQ(e.target.value)} />
+    <div className="pad">
+      <div className="stack">
+        <div className="card">
+          <div className="form">
             <div className="row h">
-              <select className="select" value={diet} onChange={e=>setDiet(e.target.value)}>
-                <option value="any">Any</option>
-                <option value="veg">Vegetarian</option>
-                <option value="vegan">Vegan</option>
+              <input
+                className="input"
+                placeholder="Search title or vendor…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              <select className="select" value={type} onChange={e => setType(e.target.value)}>
+                {types.map(t => (
+                  <option key={t} value={t}>
+                    {t === 'all' ? 'All types' : t}
+                  </option>
+                ))}
               </select>
-              <button className="btn secondary" onClick={useMyLocation}>Use my location</button>
             </div>
-            <div className="muted">Page 3: Map or List {userLoc ? '• using your location' : '• default city'}</div>
+            <div className="row h">
+              <div className="tabs" style={{ width: '100%' }}>
+                <button className={`btn ${mode === 'map' ? '' : 'secondary'}`} style={{ flex: 1 }} onClick={() => setMode('map')}>Map</button>
+                <button className={`btn ${mode === 'list' ? '' : 'secondary'}`} style={{ flex: 1 }} onClick={() => setMode('list')}>List</button>
+              </div>
+              <button className="btn secondary" onClick={useMyLocation}>📍 Use my location</button>
+            </div>
+            {msg && <div className="muted">{msg}</div>}
           </div>
         </div>
-      </div>
 
-      {mode === 'map' ? (
-        <MapView items={items} onBuy={goCheckout} />
-      ) : (
-        <div style={{height:'100%', overflow:'auto', padding:'0 16px 90px 16px', boxSizing:'border-box'}}>
+        {mode === 'map' ? (
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ height: 420 }}>
+              <MapView items={items} onBuy={goCheckout} center={userCenter} />
+            </div>
+          </div>
+        ) : (
           <div className="list">
             {items.map(item => {
               const r = getVendorRating(item.vendor)
               return (
-                <div className="list-item" key={item.id}>
-                  <img className="thumb" src={item.image || `https://picsum.photos/seed/${encodeURIComponent(item.title)}/160/110`} alt="" />
+                <div key={item.id} className="list-item" style={{ gridTemplateColumns: '72px 1fr auto' }}>
+                  <img className="thumb" alt="" src={item.image || 'https://images.unsplash.com/photo-1505575972945-280f1b9cf63a?q=80&w=600&auto=format&fit=crop'} />
                   <div>
-                    <div style={{display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
-                      <strong style={{fontSize:14}}>{item.title}</strong>
-                      <span className="muted">({item.vendor})</span>
-                    </div>
-                    <div style={{fontSize:14}}>${Number(item.price).toFixed(2)} {item.originalPrice ? <span className="muted"> (was ${Number(item.originalPrice).toFixed(2)})</span> : null}</div>
-                    <div className="muted" style={{fontSize:12}}>
-                      Expires {new Date(item.expiry).toLocaleString()}
-                      {typeof item.distance_km === 'number' ? ` • ${item.distance_km.toFixed(1)} km away` : ''}
-                    </div>
-                    <div style={{marginTop:6}}>
-                      {r.count ? <StarRating value={r.avg} count={r.count} /> : <span className="muted">No reviews yet</span>}
-                      <div style={{marginTop:4}}>
-                        <button className="btn small" onClick={()=>goCheckout(item)}>Buy</button>
-                      </div>
-                    </div>
+                    <div><strong>{item.title}</strong> <span className="muted">• {item.type}</span></div>
+                    <div className="muted">{item.vendor}</div>
+                    {r.count ? <StarRating value={r.avg} count={r.count} /> : <span className="muted">No reviews yet</span>}
                   </div>
-                  <a className="btn secondary small" href={`https://www.google.com/maps/dir/?api=1&destination=${item.lat},${item.lng}`} target="_blank" rel="noreferrer">Go</a>
+                  <div style={{ textAlign: 'right' }}>
+                    <div><strong>${Number(item.price).toFixed(2)}</strong></div>
+                    <button className="btn small" onClick={() => goCheckout(item)} style={{ marginTop: 6 }}>Buy</button>
+                  </div>
                 </div>
               )
             })}
+            {items.length === 0 && (
+              <div className="muted" style={{ padding: 8 }}>No results. Try “All types” or clear the search.</div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

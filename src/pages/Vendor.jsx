@@ -1,97 +1,103 @@
 import React, { useEffect, useMemo, useState } from 'react'
 
-const profileKey = 'thexdate.vendorProfile'
-const itemsKey = 'thexdate.vendorItems'
+const STORE_KEY = 'thexdate.vendor.store'
+const ITEMS_KEY = 'thexdate.vendor.items'
 
-function loadJSON(key, fallback) {
-  try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return v ?? fallback } catch { return fallback }
+function load(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback } catch { return fallback }
 }
-function saveJSON(key, value) {
-  localStorage.setItem(key, JSON.stringify(value))
+function save(key, val) { localStorage.setItem(key, JSON.stringify(val)) }
+
+async function reverseGeocode(lat, lon) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } })
+    const data = await res.json()
+    return data?.display_name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`
+  } catch {
+    return `${lat.toFixed(5)}, ${lon.toFixed(5)}`
+  }
 }
 
 export default function Vendor() {
-  const [profile, setProfile] = useState(() => loadJSON(profileKey, {
-    storeName: 'My Store', address: '', phone: '', lat: null, lng: null,
+  const [store, setStore] = useState(load(STORE_KEY, {
+    name: 'My Store',
+    address: '',
+    phone: '',
+    lat: null,
+    lon: null
   }))
+  const [items, setItems] = useState(load(ITEMS_KEY, []))
+  const [form, setForm] = useState({
+    description: '',
+    imageFile: null,
+    title: '',
+    qty: 1,
+    price: '',
+    originalPrice: '',
+    expiry: '' // date only
+  })
   const [msg, setMsg] = useState('')
-  const [item, setItem] = useState({ title:'', description:'', price:'', originalPrice:'', qty:1, expiryDate:'', imageData:'' })
-  const [items, setItems] = useState(() => loadJSON(itemsKey, []))
 
-  useEffect(() => {
-    const onChange = () => setItems(loadJSON(itemsKey, []))
-    window.addEventListener('storage', onChange)
-    return () => window.removeEventListener('storage', onChange)
-  }, [])
+  useEffect(() => save(STORE_KEY, store), [store])
+  useEffect(() => save(ITEMS_KEY, items), [items])
 
-  const hasCoords = useMemo(() => Number.isFinite(profile.lat) && Number.isFinite(profile.lng), [profile.lat, profile.lng])
+  const publishEnabled = useMemo(() =>
+    form.title && Number(form.qty) > 0 && Number(form.price) > 0 && form.expiry, [form])
 
   const useMyLocation = () => {
-    if (!navigator.geolocation) return alert('Geolocation not available')
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setProfile(p => ({ ...p, lat: pos.coords.latitude, lng: pos.coords.longitude }))
-        setMsg('✅ Location captured.')
-      },
-      () => alert('Could not get your location'),
-      { enableHighAccuracy: true, timeout: 5000 }
-    )
-  }
-
-  const saveProfileClick = () => {
-    if (!profile.storeName) return setMsg('Please enter your store name.')
-    if (!profile.address) return setMsg('Please enter your store address.')
-    if (profile.phone && !/^\+?\d[\d\s\-()]{6,}$/.test(profile.phone)) return setMsg('Please enter a valid phone.')
-    saveJSON(profileKey, profile)
-    setMsg('✅ Store profile saved.')
-  }
-
-  const onImageFile = (file) => {
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => setItem(prev => ({ ...prev, imageData: reader.result }))
-    reader.readAsDataURL(file)
-  }
-
-  const postItem = () => {
     setMsg('')
-    if (!item.title) return setMsg('Please enter a title.')
-    if (!item.price || isNaN(item.price)) return setMsg('Please enter a valid price.')
-    if (!item.qty || isNaN(item.qty) || item.qty < 1) return setMsg('Please enter a valid quantity (>=1).')
-    if (!item.expiryDate) return setMsg('Please choose an expiry date.')
-    const [y,m,d] = item.expiryDate.split('-').map(Number)
-    const expiry = new Date(y, m-1, d, 23, 59, 0)
-
-    const newItem = {
-      id: `v_${Date.now()}`,
-      vendor: profile.storeName || 'My Store',
-      address: profile.address || '',
-      lat: hasCoords ? profile.lat : 37.7749,
-      lng: hasCoords ? profile.lng : -122.4194,
-      title: item.title,
-      description: item.description || '',
-      price: Number(item.price),
-      originalPrice: item.originalPrice ? Number(item.originalPrice) : undefined,
-      qty: Number(item.qty),
-      expiry: expiry.toISOString(),
-      soldOut: false,
-      image: item.imageData || '',
-      diet: []
+    if (!('geolocation' in navigator)) {
+      setMsg('Geolocation not supported.')
+      return
     }
-
-    const next = [newItem, ...items]
-    setItems(next); saveJSON(itemsKey, next)
-    setItem({ title:'', description:'', price:'', originalPrice:'', qty:1, expiryDate:'', imageData:'' })
-    setMsg('✅ Item posted to the map/list.')
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const lat = pos.coords.latitude
+      const lon = pos.coords.longitude
+      const addr = await reverseGeocode(lat, lon)
+      setStore(s => ({ ...s, lat, lon, address: addr }))
+      setMsg('Location captured and address filled.')
+    }, err => {
+      setMsg('Location error: ' + (err?.message || 'permission denied'))
+    }, { enableHighAccuracy: true, timeout: 9000 })
   }
 
-  const markSoldOut = (id) => {
-    const next = items.map(it => it.id === id ? { ...it, soldOut: true } : it)
-    setItems(next); saveJSON(itemsKey, next)
+  const publish = () => {
+    const id = `v_${Date.now()}`
+    const reader = new FileReader()
+    reader.onload = () => {
+      const newItem = {
+        id,
+        vendor: store.name || 'My Store',
+        title: form.title,
+        type: guessType(form.title),
+        price: Number(form.price),
+        originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
+        qty: Number(form.qty),
+        expiry: form.expiry, // date only
+        image: reader.result || '',
+        lat: store.lat ?? 37.7749,
+        lng: store.lon ?? -122.4194
+      }
+      const next = [newItem, ...items]
+      setItems(next)
+      setForm({ description: '', imageFile: null, title: '', qty: 1, price: '', originalPrice: '', expiry: '' })
+      alert('Item published! It now appears on Discover.')
+    }
+    if (form.imageFile) reader.readAsDataURL(form.imageFile)
+    else reader.onload({ target: { result: '' } })
   }
-  const removeItem = (id) => {
-    const next = items.filter(it => it.id !== id)
-    setItems(next); saveJSON(itemsKey, next)
+
+  const guessType = (title) => {
+    const t = title.toLowerCase()
+    if (t.includes('bagel') || t.includes('bread') || t.includes('loaf') || t.includes('bakery')) return 'Bakery'
+    if (t.includes('wrap') || t.includes('sandwich')) return 'Deli'
+    if (t.includes('salad')) return 'Salad'
+    if (t.includes('pasta') || t.includes('italian')) return 'Italian'
+    if (t.includes('bowl')) return 'Bowl'
+    if (t.includes('sushi')) return 'Sushi'
+    if (t.includes('fruit') || t.includes('veggie') || t.includes('box') || t.includes('produce')) return 'Produce'
+    return 'Other'
   }
 
   return (
@@ -99,107 +105,96 @@ export default function Vendor() {
       <div className="stack">
 
         <div className="card">
-          <h3>Store profile</h3>
+          <h3 style={{ marginTop: 0 }}>Store profile</h3>
           <div className="form">
             <div className="row">
               <label className="muted">Store name</label>
-              <input className="input" value={profile.storeName} onChange={e=>setProfile(p=>({...p, storeName:e.target.value}))} placeholder="My Store"/>
+              <input className="input" value={store.name} onChange={e => setStore({ ...store, name: e.target.value })} />
             </div>
             <div className="row">
               <label className="muted">Address</label>
-              <input className="input" value={profile.address} onChange={e=>setProfile(p=>({...p, address:e.target.value}))} placeholder="123 Main St, City, State"/>
-            </div>
-            <div className="row">
-              <label className="muted">Phone</label>
-              <input className="input" inputMode="tel" value={profile.phone} onChange={e=>setProfile(p=>({...p, phone:e.target.value}))} placeholder="+1 415 555 1234"/>
+              <input className="input" value={store.address} onChange={e => setStore({ ...store, address: e.target.value })} placeholder="123 Main St, City" />
             </div>
             <div className="row h">
-              <button className="btn secondary" onClick={useMyLocation}>Use my location</button>
-              <button className="btn" onClick={saveProfileClick}>Save profile</button>
+              <div className="row">
+                <label className="muted">Phone</label>
+                <input className="input" value={store.phone} onChange={e => setStore({ ...store, phone: e.target.value })} placeholder="(555) 123-4567" />
+              </div>
+              <div className="row">
+                <label className="muted">Actions</label>
+                <button className="btn secondary" onClick={useMyLocation}>📍 Use my location</button>
+              </div>
             </div>
-            <div className="muted">
-              {hasCoords ? `Location set • ${profile.lat?.toFixed(4)}, ${profile.lng?.toFixed(4)}` : 'Tip: set your location so items appear on the map'}
+            <div className="row h">
+              <button className="btn" onClick={() => { save(STORE_KEY, store); setMsg('Store saved.'); }}>Save Profile</button>
+              <button className="btn secondary" onClick={() => { setStore({ name: 'My Store', address: '', phone: '', lat: null, lon: null }); setMsg('Profile cleared.'); }}>Reset</button>
             </div>
-            {msg && <div className="muted" style={{color: msg.startsWith('✅') ? '#065f46' : '#b91c1c'}}>{msg}</div>}
           </div>
         </div>
 
         <div className="card">
-          <h3>Post an item</h3>
+          <h3 style={{ marginTop: 0 }}>Post an item</h3>
           <div className="form">
             <div className="row">
-              <label className="muted">Title</label>
-              <input className="input" value={item.title} onChange={e=>setItem({...item, title:e.target.value})} placeholder="Sandwich combo"/>
-            </div>
-
-            <div className="row">
               <label className="muted">Description</label>
-              <textarea className="textarea" value={item.description} onChange={e=>setItem({...item, description:e.target.value})} placeholder="Short description, ingredients, pickup window."/>
+              <textarea className="textarea" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Short description…" />
             </div>
-
             <div className="row">
               <label className="muted">Image</label>
-              <input className="input" type="file" accept="image/*" onChange={e=>onImageFile(e.target.files?.[0])}/>
-              {item.imageData && (
-                <img src={item.imageData} alt="preview" style={{marginTop:8, width:'100%', height:140, objectFit:'cover', borderRadius:10, border:'1px solid var(--border)'}}/>
-              )}
+              <input type="file" accept="image/*" className="input" onChange={e => setForm({ ...form, imageFile: e.target.files?.[0] || null })} />
             </div>
-
             <div className="row h">
-              <div>
+              <div className="row">
+                <label className="muted">Title</label>
+                <input className="input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g., Turkey Sandwich" />
+              </div>
+              <div className="row">
+                <label className="muted">Qty</label>
+                <input className="input" inputMode="numeric" value={form.qty} onChange={e => setForm({ ...form, qty: e.target.value })} />
+              </div>
+            </div>
+            <div className="row h">
+              <div className="row">
                 <label className="muted">Price</label>
-                <input className="input" inputMode="decimal" value={item.price} onChange={e=>setItem({...item, price:e.target.value})} placeholder="4.99"/>
+                <input className="input" inputMode="decimal" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
               </div>
-              <div>
-                <label className="muted">Was (optional)</label>
-                <input className="input" inputMode="decimal" value={item.originalPrice} onChange={e=>setItem({...item, originalPrice:e.target.value})} placeholder="8.99"/>
+              <div className="row">
+                <label className="muted">Original (optional)</label>
+                <input className="input" inputMode="decimal" value={form.originalPrice} onChange={e => setForm({ ...form, originalPrice: e.target.value })} />
               </div>
             </div>
-
+            <div className="row">
+              <label className="muted">Expiry date</label>
+              <input className="input" type="date" value={form.expiry} onChange={e => setForm({ ...form, expiry: e.target.value })} />
+            </div>
             <div className="row h">
-              <div>
-                <label className="muted">Quantity</label>
-                <input className="input" inputMode="numeric" value={item.qty} onChange={e=>setItem({...item, qty:e.target.value})}/>
-              </div>
-              <div>
-                <label className="muted">Expiry (date)</label>
-                <input className="input" type="date" value={item.expiryDate} onChange={e=>setItem({...item, expiryDate:e.target.value})}/>
-              </div>
+              <button className="btn" disabled={!publishEnabled} onClick={publish}>Publish</button>
+              <button className="btn secondary" onClick={() => setForm({ description: '', imageFile: null, title: '', qty: 1, price: '', originalPrice: '', expiry: '' })}>Clear</button>
             </div>
-
-            <button className="btn" onClick={postItem}>Post item</button>
           </div>
         </div>
 
         <div className="card">
-          <h3>Your items</h3>
-          {items.length === 0 ? (
-            <div className="muted">No items yet. Post something above.</div>
-          ) : (
-            <div className="list">
-              {items.map(it => (
-                <div key={it.id} className="list-item">
-                  <img className="thumb" src={it.image || `https://picsum.photos/seed/${encodeURIComponent(it.title)}/140/100`} alt="" />
-                  <div>
-                    <div style={{display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
-                      <strong style={{fontSize:14}}>{it.title}</strong>
-                      <span className="muted">({it.qty} left)</span>
-                    </div>
-                    <div style={{fontSize:14}}>${Number(it.price).toFixed(2)} {it.originalPrice ? <span className="muted">(was ${Number(it.originalPrice).toFixed(2)})</span> : null}</div>
-                    <div className="muted" style={{fontSize:12}}>
-                      Expires {new Date(it.expiry).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div style={{display:'grid', gap:6}}>
-                    {!it.soldOut && <button className="btn small secondary" onClick={()=>markSoldOut(it.id)}>Sold out</button>}
-                    <button className="btn small secondary" onClick={()=>removeItem(it.id)}>Remove</button>
-                  </div>
+          <h3 style={{ marginTop: 0 }}>My Items</h3>
+          <div className="list">
+            {items.length === 0 && <div className="muted">No items posted yet.</div>}
+            {items.map(it => (
+              <div key={it.id} className="list-item" style={{ gridTemplateColumns: '72px 1fr auto' }}>
+                <img className="thumb" alt="" src={it.image || 'https://images.unsplash.com/photo-1505575972945-280f1b9cf63a?q=80&w=600&auto=format&fit=crop'} />
+                <div>
+                  <div><strong>{it.title}</strong> <span className="muted">• {it.type}</span></div>
+                  <div className="muted">Qty {it.qty} • ${Number(it.price).toFixed(2)}</div>
+                  <div className="muted">Expiry {it.expiry}</div>
                 </div>
-              ))}
-            </div>
-          )}
+                <button className="btn small" onClick={() => {
+                  setItems(items.filter(x => x.id !== it.id))
+                }}>Remove</button>
+              </div>
+            ))}
+          </div>
         </div>
 
+        {msg && <div className="muted" style={{ color: '#065f46' }}>{msg}</div>}
       </div>
     </div>
   )
