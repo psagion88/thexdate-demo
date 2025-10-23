@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import StarRating from './StarRating.jsx'
 import { getVendorRating } from '../utils/ratings.js'
+import { placeholderForItem } from '../utils/placeholders.js'
 
 const icon = new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -10,13 +11,6 @@ const icon = new L.Icon({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
   iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
 })
-
-// Safe default thumbnail that always works over HTTPS
-function fallbackThumb(item) {
-  const seed = encodeURIComponent(`${item.type || 'food'}-${item.title || item.vendor || 'item'}`)
-  // consistent per item; 320x200
-  return `https://picsum.photos/seed/${seed}/320/200`
-}
 
 export default function MapView({ items = [], onBuy, center }) {
   const fallback = items.length ? [items[0].lat, items[0].lng] : [37.7749, -122.4194]
@@ -42,7 +36,7 @@ export default function MapView({ items = [], onBuy, center }) {
         />
         {items.map(it => {
           const r = getVendorRating(it.vendor)
-          const img = it.image || fallbackThumb(it)
+          const img = it.image || placeholderForItem(it)
           return (
             <Marker key={it.id} position={[it.lat, it.lng]} icon={icon}>
               <Popup>
@@ -52,7 +46,7 @@ export default function MapView({ items = [], onBuy, center }) {
                     src={img}
                     loading="lazy"
                     style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid #eee' }}
-                    onError={(e) => { e.currentTarget.src = fallbackThumb(it) }}
+                    onError={(e) => { e.currentTarget.src = placeholderForItem(it) }}
                   />
                   <strong>{it.title}</strong>
                   <div>${Number(it.price).toFixed(2)} {it.originalPrice ? <span className="muted">(was ${Number(it.originalPrice).toFixed(2)})</span> : null}</div>

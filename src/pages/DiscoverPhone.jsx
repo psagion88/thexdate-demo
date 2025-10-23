@@ -1,14 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MapView from '../components/MapView.jsx'
 import dealsData from '../data/sampleDeals.json'
 import StarRating from '../components/StarRating.jsx'
 import { getVendorRating } from '../utils/ratings.js'
-
-function fallbackThumb(item) {
-  const seed = encodeURIComponent(`${item.type || 'food'}-${item.title || item.vendor || 'item'}`)
-  return `https://picsum.photos/seed/${seed}/320/200`
-}
+import { placeholderForItem } from '../utils/placeholders.js'
 
 export default function DiscoverPhone() {
   const nav = useNavigate()
@@ -96,7 +92,7 @@ export default function DiscoverPhone() {
           <div className="list">
             {items.map(item => {
               const r = getVendorRating(item.vendor)
-              const img = item.image || fallbackThumb(item)
+              const img = item.image || placeholderForItem(item)
               return (
                 <div key={item.id} className="list-item" style={{ gridTemplateColumns: '72px 1fr auto' }}>
                   <img
@@ -104,7 +100,7 @@ export default function DiscoverPhone() {
                     alt=""
                     src={img}
                     loading="lazy"
-                    onError={(e) => { e.currentTarget.src = fallbackThumb(item) }}
+                    onError={(e) => { e.currentTarget.src = placeholderForItem(item) }}
                   />
                   <div>
                     <div><strong>{item.title}</strong> <span className="muted">• {item.type}</span></div>
