@@ -12,12 +12,18 @@ import Checkout from './pages/Checkout.jsx'
 import Refunds from './pages/Refunds.jsx'
 import VendorPayout from './pages/VendorPayout.jsx'
 import BottomNav from './components/BottomNav.jsx'
+import { trackPageview } from './utils/analytics.js'
 
 function AppShell({ children }) {
   const nav = useNavigate()
   const loc = useLocation()
   const [role, setRole] = useState(null)
   const [name, setName] = useState(null)
+
+  // NEW: pageview on every route change
+  useEffect(() => {
+    trackPageview()
+  }, [loc.pathname, loc.search, loc.hash])
 
   useEffect(() => {
     const readRole = () => setRole(localStorage.getItem('thexdate.role'))

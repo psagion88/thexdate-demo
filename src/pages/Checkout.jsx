@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { STORE_KEYS, loadJSON, saveJSON } from '../utils/payments.js'
+import { trackEvent } from '../utils/analytics.js'
 
 export default function Checkout() {
   const nav = useNavigate()
@@ -22,11 +23,21 @@ export default function Checkout() {
     setTimeout(() => {
       const orders = loadJSON(STORE_KEYS.orders, [])
       const id = `ord_${Date.now()}`
-      orders.push({
+      const order = {
         id, title: item.title, vendor: item.vendor, amount: item.price,
         methodLabel: `${selected.brand} ${selected.label}`, status: 'paid', createdAt: Date.now(),
-      })
+      }
+      orders.push(order)
       saveJSON(STORE_KEYS.orders, orders)
+
+      // NEW: send a custom analytics event
+      trackEvent('purchase', {
+        title: item.title,
+        vendor: item.vendor,
+        amount: Number(item.price),
+        method: selected.brand
+      })
+
       setStatus('done')
       alert('Order placed! Manage refunds under Profile → Refunds.')
       nav('/discover')
