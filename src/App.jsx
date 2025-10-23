@@ -18,23 +18,16 @@ function AppShell({ children }) {
   const nav = useNavigate()
   const loc = useLocation()
   const [role, setRole] = useState(null)
-  const [name, setName] = useState(null)
 
-  // NEW: pageview on every route change
+  // Pageview on route change
   useEffect(() => {
     trackPageview()
   }, [loc.pathname, loc.search, loc.hash])
 
   useEffect(() => {
     const readRole = () => setRole(localStorage.getItem('thexdate.role'))
-    const readProfile = () => {
-      try {
-        const profile = JSON.parse(localStorage.getItem('thexdate.profile') || 'null')
-        setName(profile?.displayName || profile?.firstName || null)
-      } catch { setName(null) }
-    }
-    readRole(); readProfile()
-    const onRoleChanged = () => { readRole(); readProfile() }
+    readRole()
+    const onRoleChanged = () => readRole()
     window.addEventListener('role-changed', onRoleChanged)
     return () => window.removeEventListener('role-changed', onRoleChanged)
   }, [loc.pathname])
@@ -53,7 +46,7 @@ function AppShell({ children }) {
           </div>
           <div className="center">
             The X Date
-            {role ? <span className="badge">• {role}{name ? ` (${name})` : ''}</span> : null}
+            {role ? <span className="badge">• {role}</span> : null}
           </div>
           <div className="right">
             {role === 'vendor' && (

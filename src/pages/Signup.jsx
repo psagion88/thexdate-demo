@@ -9,25 +9,24 @@ export default function Signup() {
 
   const finish = (profile) => {
     try { localStorage.setItem('thexdate.profile', JSON.stringify(profile)) } catch {}
-    // go pick role next
     nav('/role')
   }
 
   const google = () => {
-    // Mock Google OAuth result
-    finish({ displayName: 'Pablo (Google)', email: 'pablo@example.com', phone: '' })
+    // Mock Google — save no name
+    finish({ displayName: '', email: 'user@example.com', phone: '' })
   }
   const apple = () => {
-    // Mock Apple OAuth result
-    finish({ displayName: 'Pablo (Apple)', email: 'pablo@icloud.com', phone: '' })
+    // Mock Apple — save no name
+    finish({ displayName: '', email: 'user@icloud.com', phone: '' })
   }
 
   const emailSubmit = () => {
     setMsg('')
     if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setMsg('Enter a valid email.')
     if (!form.password || form.password.length < 6) return setMsg('Password must be at least 6 characters.')
-    const name = [form.firstName, form.lastName].filter(Boolean).join(' ').trim() || 'New User'
-    finish({ displayName: name, email: form.email, phone: '' })
+    const name = [form.firstName, form.lastName].filter(Boolean).join(' ').trim()
+    finish({ displayName: name || '', email: form.email, phone: '' })
   }
 
   return (
