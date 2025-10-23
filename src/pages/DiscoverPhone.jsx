@@ -5,6 +5,11 @@ import dealsData from '../data/sampleDeals.json'
 import StarRating from '../components/StarRating.jsx'
 import { getVendorRating } from '../utils/ratings.js'
 
+function fallbackThumb(item) {
+  const seed = encodeURIComponent(`${item.type || 'food'}-${item.title || item.vendor || 'item'}`)
+  return `https://picsum.photos/seed/${seed}/320/200`
+}
+
 export default function DiscoverPhone() {
   const nav = useNavigate()
   const [query, setQuery] = useState('')
@@ -13,13 +18,11 @@ export default function DiscoverPhone() {
   const [userCenter, setUserCenter] = useState(null)
   const [msg, setMsg] = useState('')
 
-  // Build dynamic type list from data
   const types = useMemo(() => {
     const set = new Set(dealsData.map(d => d.type).filter(Boolean))
     return ['all', ...Array.from(set).sort()]
   }, [])
 
-  // Filter logic
   const items = useMemo(() => {
     const q = query.trim().toLowerCase()
     return dealsData.filter(d => {
@@ -44,12 +47,10 @@ export default function DiscoverPhone() {
       pos => {
         const c = [pos.coords.latitude, pos.coords.longitude]
         setUserCenter(c)
-        setMode('map') // show the map
+        setMode('map')
         setMsg('Centered on your location.')
       },
-      err => {
-        setMsg('Location error: ' + (err?.message || 'permission denied'))
-      },
+      err => setMsg('Location error: ' + (err?.message || 'permission denied')),
       { enableHighAccuracy: true, timeout: 8000 }
     )
   }
@@ -95,9 +96,16 @@ export default function DiscoverPhone() {
           <div className="list">
             {items.map(item => {
               const r = getVendorRating(item.vendor)
+              const img = item.image || fallbackThumb(item)
               return (
                 <div key={item.id} className="list-item" style={{ gridTemplateColumns: '72px 1fr auto' }}>
-                  <img className="thumb" alt="" src={item.image || 'https://images.unsplash.com/photo-1505575972945-280f1b9cf63a?q=80&w=600&auto=format&fit=crop'} />
+                  <img
+                    className="thumb"
+                    alt=""
+                    src={img}
+                    loading="lazy"
+                    onError={(e) => { e.currentTarget.src = fallbackThumb(item) }}
+                  />
                   <div>
                     <div><strong>{item.title}</strong> <span className="muted">• {item.type}</span></div>
                     <div className="muted">{item.vendor}</div>

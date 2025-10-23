@@ -11,13 +11,19 @@ const icon = new L.Icon({
   iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
 })
 
+// Safe default thumbnail that always works over HTTPS
+function fallbackThumb(item) {
+  const seed = encodeURIComponent(`${item.type || 'food'}-${item.title || item.vendor || 'item'}`)
+  // consistent per item; 320x200
+  return `https://picsum.photos/seed/${seed}/320/200`
+}
+
 export default function MapView({ items = [], onBuy, center }) {
   const fallback = items.length ? [items[0].lat, items[0].lng] : [37.7749, -122.4194]
   const mapRef = useRef(null)
 
   useEffect(() => {
     if (center && mapRef.current) {
-      // Smoothly move to user location when it changes
       mapRef.current.setView(center, 13, { animate: true })
     }
   }, [center])
@@ -36,10 +42,18 @@ export default function MapView({ items = [], onBuy, center }) {
         />
         {items.map(it => {
           const r = getVendorRating(it.vendor)
+          const img = it.image || fallbackThumb(it)
           return (
             <Marker key={it.id} position={[it.lat, it.lng]} icon={icon}>
               <Popup>
-                <div style={{ display: 'grid', gap: 6, maxWidth: 240 }}>
+                <div style={{ display: 'grid', gap: 8, maxWidth: 260 }}>
+                  <img
+                    alt=""
+                    src={img}
+                    loading="lazy"
+                    style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid #eee' }}
+                    onError={(e) => { e.currentTarget.src = fallbackThumb(it) }}
+                  />
                   <strong>{it.title}</strong>
                   <div>${Number(it.price).toFixed(2)} {it.originalPrice ? <span className="muted">(was ${Number(it.originalPrice).toFixed(2)})</span> : null}</div>
                   <div className="muted">{it.vendor} • {it.type}</div>
